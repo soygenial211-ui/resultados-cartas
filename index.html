@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evaluación de Recursos</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --bg: #f4f7f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #setup-screen, #display-screen {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+
+        #display-screen { display: none; min-height: 400px; position: relative; }
+
+        .input-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: transform 0.2s;
+        }
+
+        button:hover { transform: scale(1.05); }
+
+        .result-img {
+            width: 100%;
+            max-height: 250px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .category-title { color: var(--accent); text-transform: uppercase; letter-spacing: 2px; }
+        .status-title { font-size: 1.5rem; margin: 10px 0; }
+        .description { line-height: 1.6; color: #555; }
+        
+        .nav-buttons { margin-top: 30px; display: flex; justify-content: space-between; }
+    </style>
+</head>
+<body>
+
+    <div id="setup-screen">
+        <h2>Simulador de Vida</h2>
+        <p>Ingresa los niveles de tus recursos (1-20):</p>
+        <div class="input-group">
+            <label>💰 Dinero:</label>
+            <input type="number" id="val-dinero" value="10">
+        </div>
+        <div class="input-group">
+            <label>🌾 Alimento:</label>
+            <input type="number" id="val-alimento" value="10">
+        </div>
+        <div class="input-group">
+            <label>💧 Agua:</label>
+            <input type="number" id="val-agua" value="10">
+        </div>
+        <div class="input-group">
+            <label>🏠 Vivienda:</label>
+            <input type="number" id="val-vivienda" value="10">
+        </div>
+        <div class="input-group">
+            <label>❤️ Salud:</label>
+            <input type="number" id="val-salud" value="10">
+        </div>
+        <button onclick="iniciarAnalisis()">Generar Resultados →</button>
+    </div>
+
+    <div id="display-screen">
+        <div id="content-area">
+            </div>
+        <div class="nav-buttons">
+            <button id="btn-prev" onclick="cambiarSlide(-1)">← Anterior</button>
+            <button id="btn-next" onclick="cambiarSlide(1)">Siguiente →</button>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURACIÓN DE IMÁGENES (Pega tus URLs aquí) ---
+        const imagenes = {
+            dinero: {
+                bajo: "dinero1.png",
+                medio: "dinero2.png",
+                alto: "dinero3.png"
+            },
+            alimento: {
+                bajo: "alimento1.png",
+                medio: "alimento2.png",
+                alto: "alimento3.png"
+            },
+            agua: {
+                bajo: "agua1.png",
+                medio: "agua2.png",
+                alto: "agua3.png"
+            },
+            vivienda: {
+                bajo: "vivienda1.png",
+                medio: "vivienda2.png",
+                alto: "vivienda3.png"
+            },
+            salud: {
+                bajo: "salud1.png",
+                medio: "salud2.png",
+                alto: "salud3.png"
+            }
+        };
+
+        // --- DATOS DE TEXTO ---
+        const contenidos = {
+            dinero: {
+                nombre: "Dinero 💰",
+                bajo: { t: "Economía de Supervivencia", d: "El dinero apenas alcanza para lo básico. Cada decisión fue reactiva y vivir al día se volvió la norma. El estrés financiero domina." },
+                medio: { t: "Estabilidad Ajustada", d: "Ingresos suficientes para cubrir necesidades y algunos imprevistos. No hay lujos, pero tampoco deudas asfixiantes." },
+                alto: { t: "Abundancia Estratégica", d: "El dinero fluye y permite invertir, ahorrar y elegir con libertad. Las crisis se sienten lejanas." }
+            },
+            agua: {
+                nombre: "Agua 💧",
+                bajo: { t: "Sequía Cotidiana", d: "El acceso al agua es limitado y racionado. La vida diaria gira en torno a conseguir lo suficiente para sobrevivir." },
+                medio: { t: "Suministro Controlado", d: "Hay agua suficiente para el consumo diario, aunque se debe usar con cuidado. La gestión responsable evita conflictos." },
+                alto: { t: "Fuente Sostenible", d: "El agua es abundante y bien administrada. La comunidad prospera sin miedo a escasez hídrica." }
+            },
+            vivienda: {
+                nombre: "Vivienda 🏠",
+                bajo: { t: "Techo Inseguro", d: "La vivienda es precaria o temporal. Mudanzas constantes y falta de estabilidad afectan todas las demás áreas." },
+                medio: { t: "Hogar Funcional", d: "Un espacio fijo, sencillo pero digno. Ofrece seguridad básica y permite planear a corto plazo." },
+                alto: { t: "Refugio Consolidado", d: "Vivienda estable, cómoda y bien ubicada. El hogar se convierte en un centro de bienestar y progreso." }
+            },
+            salud: {
+                nombre: "Salud ❤️",
+                bajo: { t: "Cuerpo al Límite", d: "Enfermedades sin tratar y acceso limitado a atención médica. Cada problema pequeño puede volverse crítico." },
+                medio: { t: "Salud Administrada", d: "Chequeos ocasionales y tratamiento básico. Se vive con cierta tranquilidad, aunque los riesgos siguen presentes." },
+                alto: { t: "Bienestar Integral", d: "Salud física y mental en óptimas condiciones. Prevención, descanso y cuidados constantes." }
+            },
+            alimento: {
+                nombre: "Alimento 🌾",
+                bajo: { t: "Hambre Intermitente", d: "La comida es insuficiente o poco nutritiva. La energía y la productividad caen dramáticamente." },
+                medio: { t: "Alimentación Básica", d: "Comidas regulares, aunque simples. Se cubren las necesidades sin excesos." },
+                alto: { t: "Nutrición Plena", d: "Dieta variada y equilibrada. El alimento fortalece el cuerpo y permite pensar más allá de la supervivencia." }
+            }
+        };
+
+        let currentSlide = 0;
+        let ordenResultados = [];
+
+        function determinarRango(valor) {
+            if (valor <= 6) return 'bajo';
+            if (valor >= 14) return 'alto';
+            return 'medio';
+        }
+
+        function iniciarAnalisis() {
+            const recursos = ['dinero', 'alimento', 'agua', 'vivienda', 'salud'];
+            ordenResultados = recursos.map(r => {
+                const val = parseInt(document.getElementById(`val-${r}`).value);
+                const rango = determinarRango(val);
+                return {
+                    cat: r,
+                    info: contenidos[r][rango],
+                    img: imagenes[r][rango],
+                    nombreCat: contenidos[r].nombre
+                };
+            });
+
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('display-screen').style.display = 'block';
+            renderSlide();
+        }
+
+        function renderSlide() {
+            const data = ordenResultados[currentSlide];
+            const container = document.getElementById('content-area');
+            
+            container.innerHTML = `
+                <p class="category-title">${data.nombreCat}</p>
+                <img src="${data.img}" alt="${data.info.t}" class="result-img" onerror="this.src='https://via.placeholder.com/400x250?text=Imagen+No+Encontrada'">
+                <h3 class="status-title">${data.info.t}</h3>
+                <p class="description">${data.info.d}</p>
+                <p><small>Paso ${currentSlide + 1} de 5</small></p>
+            `;
+
+            document.getElementById('btn-prev').style.visibility = currentSlide === 0 ? 'hidden' : 'visible';
+            document.getElementById('btn-next').innerText = currentSlide === 4 ? 'Finalizar' : 'Siguiente →';
+        }
+
+        function cambiarSlide(dir) {
+            currentSlide += dir;
+            if (currentSlide > 4) {
+                location.reload(); // Reiniciar al final
+            } else if (currentSlide >= 0) {
+                renderSlide();
+            }
+        }
+    </script>
+</body>
+</html>
